@@ -127,11 +127,10 @@ class ScannerService {
     
     int completed = 0;
     
-    for (int i = 1; i < 255; i++) {
-      final targetIp = '$subnet.$i';
-      
-      if (Platform.isWindows) {
-        // Native Windows Ping to avoid dart_ping UTF-8 crash on localized OS
+    if (Platform.isWindows) {
+      for (int i = 1; i < 255; i++) {
+        final targetIp = '$subnet.$i';
+        // Native Windows Ping
         Process.run(
           'ping', 
           ['-n', '1', '-w', '500', targetIp],
@@ -170,35 +169,54 @@ class ScannerService {
           completed++;
           if (completed >= 254) controller.close();
         });
-      } else {
-        // Native Dart Ping for Android/iOS
-        final ping = Ping(targetIp, count: 1, timeout: 1);
-        ping.stream.listen((event) {
-          if (event.response != null && event.error == null) {
-            String iconType = 'device_unknown';
-            if (targetIp == gatewayIp || (targetIp.endsWith('.1') && gatewayIp.isEmpty)) {
-              iconType = 'router';
-            } else {
-              iconType = 'smartphone'; // Safe default for mobile
-            }
-
-            final device = DeviceModel(
-              networkId: networkId,
-              ipAddress: targetIp,
-              macAddress: null, // Restricted on Android 10+
-              hostname: null,
-              brand: null,
-              iconType: iconType,
-              lastSeen: DateTime.now(),
-            );
-            _saveDevice(device);
-            controller.add(device);
-          }
-        }).onDone(() {
-          completed++;
-          if (completed == 254) controller.close();
-        });
       }
+    } else {
+      // Run mobile pings in batches to prevent ANRs
+      Future<void> runBatches() async {
+        for (int start = 1; start < 255; start += 20) {
+          int end = start + 20;
+          if (end > 255) end = 255;
+          
+          List<Future<void>> chunk = [];
+          
+          for (int j = start; j < end; j++) {
+            final targetIp = '$subnet.$j';
+            final completer = Completer<void>();
+            final ping = Ping(targetIp, count: 1, timeout: 1);
+            
+            ping.stream.listen((event) {
+              if (event.response != null && event.error == null) {
+                String iconType = 'device_unknown';
+                if (targetIp == gatewayIp || (targetIp.endsWith('.1') && gatewayIp.isEmpty)) {
+                  iconType = 'router';
+                } else {
+                  iconType = 'smartphone'; // Safe default for mobile
+                }
+
+                final device = DeviceModel(
+                  networkId: networkId,
+                  ipAddress: targetIp,
+                  macAddress: null, // Restricted on Android 10+
+                  hostname: null,
+                  brand: null,
+                  iconType: iconType,
+                  lastSeen: DateTime.now(),
+                );
+                _saveDevice(device);
+                controller.add(device);
+              }
+            }).onDone(() {
+              completed++;
+              completer.complete();
+              if (completed == 254) controller.close();
+            });
+            
+            chunk.add(completer.future);
+          }
+          await Future.wait(chunk);
+        }
+      }
+      runBatches();
     }
     return controller.stream;
   }

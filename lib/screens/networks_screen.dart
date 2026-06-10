@@ -23,7 +23,7 @@ class _NetworksScreenState extends State<NetworksScreen> {
   void initState() {
     super.initState();
     _initData();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) => _fetchNetworks());
+    _refreshTimer = Timer.periodic(Duration(seconds: Platform.isAndroid || Platform.isIOS ? 600 : 10), (_) => _fetchNetworks());
   }
 
   @override

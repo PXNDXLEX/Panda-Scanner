@@ -90,6 +90,76 @@ class PandaScannerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = Platform.isAndroid || Platform.isIOS;
+
+    // Desktop Themes (Hacker Green / Dark Blue)
+    final desktopLight = ThemeData.light().copyWith(
+      scaffoldBackgroundColor: const Color(0xFFF1F5F9),
+      primaryColor: const Color(0xFF10B981),
+      colorScheme: const ColorScheme.light(
+        primary: Color(0xFF10B981),
+        secondary: Color(0xFF3B82F6),
+        surface: Colors.white,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFF1E293B),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+      ),
+      useMaterial3: true,
+    );
+
+    final desktopDark = ThemeData.dark().copyWith(
+      scaffoldBackgroundColor: const Color(0xFF0F172A),
+      primaryColor: const Color(0xFF10B981),
+      colorScheme: const ColorScheme.dark(
+        primary: Color(0xFF10B981),
+        secondary: Color(0xFF3B82F6),
+        surface: Color(0xFF1E293B),
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFF1E293B),
+        elevation: 0,
+        centerTitle: true,
+      ),
+      useMaterial3: true,
+    );
+
+    // Mobile Themes (Deep Purple / Amber)
+    final mobileLight = ThemeData.light().copyWith(
+      scaffoldBackgroundColor: const Color(0xFFF3E5F5), // Light purple
+      primaryColor: Colors.deepPurple,
+      colorScheme: const ColorScheme.light(
+        primary: Colors.deepPurple,
+        secondary: Colors.amber,
+        surface: Colors.white,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        centerTitle: true,
+      ),
+      useMaterial3: true,
+    );
+
+    final mobileDark = ThemeData.dark().copyWith(
+      scaffoldBackgroundColor: const Color(0xFF120024), // Very dark purple
+      primaryColor: Colors.deepPurpleAccent,
+      colorScheme: const ColorScheme.dark(
+        primary: Colors.deepPurpleAccent,
+        secondary: Colors.amberAccent,
+        surface: Color(0xFF230344), // Elevated dark purple
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFF230344),
+        elevation: 4,
+        centerTitle: true,
+      ),
+      useMaterial3: true,
+    );
+
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeNotifier,
       builder: (_, currentTheme, __) {
@@ -97,37 +167,8 @@ class PandaScannerApp extends StatelessWidget {
           title: 'Panda Scanner',
           debugShowCheckedModeBanner: false,
           themeMode: currentTheme,
-          theme: ThemeData.light().copyWith(
-            scaffoldBackgroundColor: const Color(0xFFF1F5F9),
-            primaryColor: const Color(0xFF10B981),
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF10B981),
-              secondary: Color(0xFF3B82F6),
-              surface: Colors.white,
-            ),
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF1E293B), // Keep Appbar dark for contrast or change to light
-              foregroundColor: Colors.white,
-              elevation: 0,
-              centerTitle: true,
-            ),
-            useMaterial3: true,
-          ),
-          darkTheme: ThemeData.dark().copyWith(
-            scaffoldBackgroundColor: const Color(0xFF0F172A), // Modern dark blue
-            primaryColor: const Color(0xFF10B981), // Hacker green accent
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF10B981),
-              secondary: Color(0xFF3B82F6),
-              surface: Color(0xFF1E293B),
-            ),
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF1E293B),
-              elevation: 0,
-              centerTitle: true,
-            ),
-            useMaterial3: true,
-          ),
+          theme: isMobile ? mobileLight : desktopLight,
+          darkTheme: isMobile ? mobileDark : desktopDark,
           home: const AuthScreen(),
         );
       }

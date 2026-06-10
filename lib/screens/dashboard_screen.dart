@@ -28,7 +28,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _initNetwork();
-    _autoScanTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+    _autoScanTimer = Timer.periodic(Duration(seconds: Platform.isAndroid || Platform.isIOS ? 600 : 15), (_) {
       if (!_isScanning && _currentNetwork != null && mounted) {
         _startScan();
       }

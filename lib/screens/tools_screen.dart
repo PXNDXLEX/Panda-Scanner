@@ -5,7 +5,6 @@ import 'package:webview_windows/webview_windows.dart' as webview_win;
 import 'package:webview_flutter/webview_flutter.dart' as webview_mobile;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:dart_ping/dart_ping.dart';
-import 'package:flutter_traceroute/flutter_traceroute.dart';
 import '../services/scanner_service.dart';
 
 class ToolsScreen extends StatefulWidget {
@@ -112,34 +111,35 @@ class _ToolsScreenState extends State<ToolsScreen> {
       _output.add('Tracing route to $target...');
     });
     
-    final args = TracerouteArgs(host: target);
-    final stream = FlutterTraceroute().trace(args);
-
-    stream.listen((event) {
-      if (!mounted) return;
+    int maxHops = 30;
+    for (int ttl = 1; ttl <= maxHops; ttl++) {
+      if (!mounted || !_isPinging) break;
       
-      if (event is TracerouteStepStart) {
-        // Ignored or logged
-      } else if (event is TracerouteStepRouter) {
-        setState(() => _output.add('${event.step}  ${event.duration}ms  ${event.ip}'));
-        _scrollToBottom();
-      } else if (event is TracerouteStepRouterDoesNotRespond) {
-        setState(() => _output.add('${event.step}  * * * Request timed out.'));
-        _scrollToBottom();
-      } else if (event is TracerouteStepFinished) {
-        setState(() {
-          _output.add('Trace complete.');
-          _isPinging = false;
-        });
-        _scrollToBottom();
-      } else if (event is TracerouteStepFailed) {
-        setState(() {
-          _output.add('Trace failed: ${event.error}');
-          _isPinging = false;
-        });
-        _scrollToBottom();
+      final ping = Ping(target, count: 1, timeout: 1, ttl: ttl);
+      await for (final event in ping.stream) {
+        if (event.error != null) {
+          if (event.error?.error == ErrorType.NoReply || event.error?.error == ErrorType.RequestTimedOut) {
+            setState(() => _output.add('$ttl  * * * Request timed out.'));
+          } else {
+            setState(() => _output.add('$ttl  ${event.error}'));
+          }
+        } else if (event.response != null) {
+          final ip = event.response!.ip ?? target;
+          final time = event.response!.time?.inMilliseconds ?? '<1';
+          setState(() => _output.add('$ttl  ${time}ms  $ip'));
+          _scrollToBottom();
+          
+          if (ip == target) {
+            setState(() {
+              _output.add('Trace complete.');
+              _isPinging = false;
+            });
+            return;
+          }
+        }
       }
-    });
+    }
+    setState(() => _isPinging = false);
   }
 
   void _scrollToBottom() {

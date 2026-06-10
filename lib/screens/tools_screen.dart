@@ -118,11 +118,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
       final ping = Ping(target, count: 1, timeout: 1, ttl: ttl);
       await for (final event in ping.stream) {
         if (event.error != null) {
-          if (event.error?.error == ErrorType.NoReply || event.error?.error == ErrorType.RequestTimedOut) {
-            setState(() => _output.add('$ttl  * * * Request timed out.'));
-          } else {
-            setState(() => _output.add('$ttl  ${event.error}'));
-          }
+          // Any error during a traceroute hop (like timeout or host unreachable)
+          // is treated as a timeout in standard traceroute output.
+          setState(() => _output.add('$ttl  * * * Request timed out.'));
         } else if (event.response != null) {
           final ip = event.response!.ip ?? target;
           final time = event.response!.time?.inMilliseconds ?? '<1';
